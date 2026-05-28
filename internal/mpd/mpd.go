@@ -18,7 +18,7 @@ type Song struct {
 	Album string
 	Date int
 	Time int
-	Duration float32
+	Duration float64
 	Position int
 	Id int
 }
@@ -106,13 +106,13 @@ func ParseSongResponse(resp string) (Song, error) {
 		case strings.HasPrefix(line, "Last-Modified: "):
 			s.LastModified = line[15:];
 		case strings.HasPrefix(line, "Added: "):
-			s.LastModified = line[7:];
+			s.Added = line[7:];
 		case strings.HasPrefix(line, "Artist: "):
-			s.LastModified = line[8:];
+			s.Artist = line[8:];
 		case strings.HasPrefix(line, "Title: "):
-			s.LastModified = line[7:];
+			s.Title = line[7:];
 		case strings.HasPrefix(line, "Album: "):
-			s.LastModified = line[7:];
+			s.Album = line[7:];
 		case strings.HasPrefix(line, "Date: "):
 			str := line[6:];
 			converted, err := strconv.Atoi(str);
@@ -129,11 +129,11 @@ func ParseSongResponse(resp string) (Song, error) {
 			s.Time = converted;
 		case strings.HasPrefix(line, "Duration: "):
 			str := line[10:];
-			converted, err := strconv.Atoi(str);
+			converted, err := strconv.ParseFloat(str, 64);
 			if err != nil {
 				return Song{}, err;
 			}
-			s.Time = converted;
+			s.Duration = converted;
 		case strings.HasPrefix(line, "Position: "):
 			str := line[10:];
 			converted, err := strconv.Atoi(str);
