@@ -87,7 +87,7 @@ func SaveAlbumArtist(db *sql.DB, albumTitle string, albumYear int, artist string
 		return -1, -1, err;
 	}
 
-	_, err = db.Exec(`INSERT OR IGNORE INTO album_artists (album_id, artist_id) VALUES (?, ?)`, albumId, artistId);
+	_, err = db.Exec(`INSERT OR IGNORE INTO albums_artists (album_id, artist_id) VALUES (?, ?)`, albumId, artistId);
 	if err != nil {
 		return -1, -1, err;
 	}
@@ -126,7 +126,7 @@ func SaveTrack(db *sql.DB, title string, file string, albumId, artistId int64) (
 		return -1, err;
 	}
 	var id int64;
-	row := db.QueryRow(`SELECT id FROM tracks WHERE title=? AND file=? AND album_id? AND artist_id=?`, title, file, albumId, artistId);
+	row := db.QueryRow(`SELECT id FROM tracks WHERE title=? AND file=? AND album_id=? AND artist_id=?`, title, file, albumId, artistId);
 	if err := row.Scan(&id); err != nil {
 		return -1, err;
 	}
@@ -142,3 +142,75 @@ func SaveScrobble(db *sql.DB, albumId, artistId, trackId int64) error {
 	return nil;
 }
 
+type AlbumDb struct {
+	Id int
+	Title string
+	Year int
+	ScrobbleCount int
+	// TODO: Artists []string
+}
+
+type TrackDb struct {
+	Id int
+	Title string
+	File string
+	AlbumId int
+	ArtistId int
+	ScrobbleCount int
+}
+
+func GetAlbumsRank(db *sql.DB) ([]AlbumDb, error) {
+	rows, err := db.Query(`
+		SELECT albums.*, COUNT(scrobbles.id) AS scrobble_count 
+		FROM albums
+		JOIN scrobbles ON scrobbles.album_id = albums.id
+		GROUP BY albums.id
+		ORDER BY scrobble_count DESC;
+	`);
+	if err != nil {
+		return nil, err;
+	}
+
+	var abs []AlbumDb;
+	for rows.Next() {
+		var ab AlbumDb;
+		if err := rows.Scan(&ab.Id, &ab.Title, &ab.Year, &ab.ScrobbleCount); err != nil {
+			return nil, err;
+		}
+		abs = append(abs, ab);
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err;
+	}
+
+	return abs, nil;
+}
+
+func GetTracksRank(db *sql.DB) ([]TrackDb, error) {
+	rows, err := db.Query(`
+		SELECT tracks.*, COUNT(scrobbles.id) AS scrobble_count 
+		FROM tracks
+		JOIN scrobbles ON scrobbles.track_id = tracks.id
+		GROUP BY tracks.id
+		ORDER BY scrobble_count DESC;
+	`);
+	if err != nil {
+		return nil, err;
+	}
+
+	var tks []TrackDb;
+	for rows.Next() {
+		var tk TrackDb;
+		if err := rows.Scan(&tk.Id, &tk.Title, &tk.File, &tk.AlbumId, &tk.ArtistId, &tk.ScrobbleCount); err != nil {
+			return nil, err;
+		}
+		tks = append(tks, tk);
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err;
+	}
+
+	return tks, nil;
+}
