@@ -147,23 +147,34 @@ type AlbumDb struct {
 	Title string
 	Year int
 	ScrobbleCount int
-	// TODO: Artists []string
+	Artists string
 }
 
 type TrackDb struct {
 	Id int
 	Title string
 	File string
-	AlbumId int
-	ArtistId int
+	Album string
+	Artist string
+	Year int
 	ScrobbleCount int
 }
 
 func GetAlbumsRank(db *sql.DB) ([]AlbumDb, error) {
 	rows, err := db.Query(`
-		SELECT albums.*, COUNT(scrobbles.id) AS scrobble_count 
+		SELECT 
+			albums.id,
+			albums.title,
+			albums.year,
+			COUNT(DISTINCT scrobbles.id) AS scrobble_count,
+			GROUP_CONCAT(DISTINCT artists.name) AS artists
 		FROM albums
-		JOIN scrobbles ON scrobbles.album_id = albums.id
+		LEFT JOIN scrobbles
+			ON scrobbles.album_id = albums.id
+		LEFT JOIN albums_artists
+			ON albums_artists.album_id = albums.id
+		LEFT JOIN artists
+			ON artists.id = albums_artists.artist_id
 		GROUP BY albums.id
 		ORDER BY scrobble_count DESC;
 	`);
@@ -174,7 +185,7 @@ func GetAlbumsRank(db *sql.DB) ([]AlbumDb, error) {
 	var abs []AlbumDb;
 	for rows.Next() {
 		var ab AlbumDb;
-		if err := rows.Scan(&ab.Id, &ab.Title, &ab.Year, &ab.ScrobbleCount); err != nil {
+		if err := rows.Scan(&ab.Id, &ab.Title, &ab.Year, &ab.ScrobbleCount, &ab.Artists); err != nil {
 			return nil, err;
 		}
 		abs = append(abs, ab);
@@ -189,9 +200,18 @@ func GetAlbumsRank(db *sql.DB) ([]AlbumDb, error) {
 
 func GetTracksRank(db *sql.DB) ([]TrackDb, error) {
 	rows, err := db.Query(`
-		SELECT tracks.*, COUNT(scrobbles.id) AS scrobble_count 
+		SELECT
+			tracks.id,
+			tracks.title,
+			tracks.file,
+			albums.title AS album_title,
+			artists.name AS artist_name,
+			albums.year As album_year,
+			COUNT(scrobbles.id) AS scrobble_count
 		FROM tracks
 		JOIN scrobbles ON scrobbles.track_id = tracks.id
+		JOIN artists ON artists.id = tracks.artist_id
+		JOIN albums ON albums.id = tracks.album_id
 		GROUP BY tracks.id
 		ORDER BY scrobble_count DESC;
 	`);
@@ -202,7 +222,7 @@ func GetTracksRank(db *sql.DB) ([]TrackDb, error) {
 	var tks []TrackDb;
 	for rows.Next() {
 		var tk TrackDb;
-		if err := rows.Scan(&tk.Id, &tk.Title, &tk.File, &tk.AlbumId, &tk.ArtistId, &tk.ScrobbleCount); err != nil {
+		if err := rows.Scan(&tk.Id, &tk.Title, &tk.File, &tk.Album, &tk.Artist, &tk.Year, &tk.ScrobbleCount); err != nil {
 			return nil, err;
 		}
 		tks = append(tks, tk);
