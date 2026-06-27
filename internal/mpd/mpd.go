@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"net"
+	"scrob/internal/config"
 	"strconv"
 	"strings"
 )
@@ -24,7 +25,12 @@ type Song struct {
 }
 
 func initializeMpdConnection() (*net.TCPConn, error) {
-	addr, err := net.ResolveTCPAddr("tcp", "localhost:6600");
+	conf, err := config.GetConfig();
+	if err != nil {
+		return nil, err;
+	}
+
+	addr, err := net.ResolveTCPAddr("tcp", conf.Address);
 	if err != nil {
 		return nil, err;
 	}
