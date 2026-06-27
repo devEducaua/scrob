@@ -4,6 +4,31 @@ import (
 	"database/sql"
 	_ "modernc.org/sqlite"
 )
+
+type AlbumDb struct {
+	Id int
+	Title string
+	Year int
+	ScrobbleCount int
+	Artists string
+}
+
+type TrackDb struct {
+	Id int
+	Title string
+	File string
+	Album string
+	Artist string
+	Year int
+	ScrobbleCount int
+}
+
+type ArtistDb struct {
+	Id int
+	Name string
+	ScrobbleCount int
+}
+
 func Connect() (*sql.DB, error) {
 	db, err := sql.Open("sqlite", "./scrob.db");
 	if err != nil {
@@ -142,24 +167,6 @@ func SaveScrobble(db *sql.DB, albumId, artistId, trackId int64) error {
 	return nil;
 }
 
-type AlbumDb struct {
-	Id int
-	Title string
-	Year int
-	ScrobbleCount int
-	Artists string
-}
-
-type TrackDb struct {
-	Id int
-	Title string
-	File string
-	Album string
-	Artist string
-	Year int
-	ScrobbleCount int
-}
-
 func GetAlbumsRank(db *sql.DB) ([]AlbumDb, error) {
 	rows, err := db.Query(`
 		SELECT 
@@ -196,6 +203,37 @@ func GetAlbumsRank(db *sql.DB) ([]AlbumDb, error) {
 	}
 
 	return abs, nil;
+}
+
+func GetArtistsRank(db *sql.DB) ([]ArtistDb, error) {
+	rows, err := db.Query(`
+		SELECT 
+			artists.id,
+			artists.name,
+			COUNT(scrobbles.id) AS scrobble_count
+		FROM artists
+		LEFT JOIN scrobbles
+			ON scrobbles.artist_id = artists.id
+		ORDER BY scrobble_count DESC;
+	`);
+	if err != nil {
+		return nil, err;
+	}
+
+	var arts []ArtistDb;
+	for rows.Next() {
+		var art ArtistDb;
+		if err := rows.Scan(&art.Id, &art.Name, &art.ScrobbleCount); err != nil {
+			return nil, err;
+		}
+		arts = append(arts, art);
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err;
+	}
+
+	return arts, nil;
 }
 
 func GetTracksRank(db *sql.DB) ([]TrackDb, error) {

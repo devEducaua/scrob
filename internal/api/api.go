@@ -50,7 +50,7 @@ func ParseRequest(msg string) (Response) {
 	case "rank":
 		subcommand := strings.TrimSpace(parts[1]);
 		switch subcommand {
-		case "album":
+		case "albums":
 			albums, err := db.GetAlbumsRank(connDB);
 			if err != nil {
 				r.Ok = false;
@@ -58,7 +58,7 @@ func ParseRequest(msg string) (Response) {
 				return r;
 			}
 			r.Data = albums;
-		case "track":
+		case "tracks":
 			tracks, err := db.GetTracksRank(connDB);
 			if err != nil {
 				r.Ok = false;
@@ -66,6 +66,18 @@ func ParseRequest(msg string) (Response) {
 				return r;
 			}
 			r.Data = tracks;
+		case "artists":
+			artists, err := db.GetArtistsRank(connDB);
+			if err != nil {
+				r.Ok = false;
+				r.Error = err.Error();
+				return r;
+			}
+			r.Data = artists;
+		default:
+			r.Ok = false;
+			r.Error = fmt.Sprintf("unknown subcommand to `rank`: %v", command);
+			return r;
 		}
 	case "list":
 	case "get":
