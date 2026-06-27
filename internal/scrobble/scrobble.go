@@ -35,3 +35,13 @@ func ScrobbleCurrentSong() (error) {
 	return nil;
 }
 
+func WatchPlayer(msg chan<- string, errs chan<- error) {
+	for {
+		result, err := mpd.Request("idle player");
+		if err != nil {
+			errs <- err;
+			continue;
+		}
+		msg <- result;
+	}
+}

@@ -9,7 +9,6 @@ import (
 	"scrob/internal/api"
 	"scrob/internal/config"
 	"scrob/internal/db"
-	"scrob/internal/mpd"
 	"scrob/internal/scrobble"
 )
 
@@ -30,7 +29,7 @@ func main() {
 	msgs := make(chan string);
 	errs := make(chan error);
 
-	go watchPlayer(msgs, errs);
+	go scrobble.WatchPlayer(msgs, errs);
 
 	for {
 		select {
@@ -83,18 +82,8 @@ func handleConnection(conn net.Conn) {
 	conn.Write(bt);
 }
 
-func watchPlayer(msg chan<- string, errs chan<- error) {
-	for {
-		result, err := mpd.Request("idle player");
-		if err != nil {
-			errs <- err;
-			continue;
-		}
-		msg <- result;
-	}
-}
-
 func fatal(err error) {
 	fmt.Fprintf(os.Stderr, "ERROR: %v\n", err);
 	os.Exit(1);
 }
+
