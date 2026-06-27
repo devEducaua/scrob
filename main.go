@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"scrob/internal/api"
+	"scrob/internal/config"
 	"scrob/internal/db"
 	"scrob/internal/mpd"
 	"scrob/internal/scrobble"
@@ -24,7 +25,7 @@ func main() {
 		fatal(err);
 	}
 
-	go serve(":7087");
+	go serve();
 
 	msgs := make(chan string);
 	errs := make(chan error);
@@ -45,8 +46,13 @@ func main() {
 	}
 }
 
-func serve(port string) {
-	listener, err := net.Listen("tcp", port);
+func serve() {
+	conf, err := config.GetConfig();
+	if err != nil {
+		fatal(err);
+	}
+
+	listener, err := net.Listen("tcp", conf.Port);
 	if err != nil {
 		fatal(err);
 	}
